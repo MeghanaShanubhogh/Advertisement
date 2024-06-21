@@ -1,0 +1,89 @@
+service: advertisement
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: us-west-2
+  memorySize: 128
+  environment:
+    ADS_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+custom:
+  allowedHeaders:
+    - Accept
+    - Content-Type
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-common-excludes
+  - serverless-plugin-include-dependencies
+  - serverless-iam-roles-per-function
+
+functions:
+  SendMessageTwilio:
+    handler: api/sendMessageTwilio.handler
+    events:
+     - stream:
+          arn: <stream arn>
+          filterPatterns:
+            - eventName: [REMOVE]
+          batchSize: 1
+          startingPosition: LATEST
+  SendMessageMeta:
+    handler: api/sendMessageMeta.handler
+    events:
+     - stream:
+          arn: <stream arn>
+          filterPatterns:
+            - eventName: [REMOVE]
+          batchSize: 1
+          startingPosition: LATEST
+  RenderCSV:
+    handler: api/fileAddedS3.handler
+    events:
+      - s3:
+          bucket: advertisement-dev
+          event: s3:ObjectCreated:*
+          existing: true
+          forceDeploy: true
+  
+resources:
+  Resources:
+    AdsTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:provider.environment.ADS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: expiry_date
+            AttributeType: N
+          - AttributeName: message_id
+            AttributeType: S
+        KeySchema: 
+          - AttributeName: message_id
+            KeyType: HASH
+          - AttributeName: expiry_date
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes:
+          - IndexName: message_id-index
+            KeySchema: 
+              - AttributeName: message_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        StreamSpecification:
+          StreamViewType: OLD_IMAGE
+        TimeToLiveSpecification:
+          AttributeName: expiry_date
+          Enabled: true
+    AdsBucketS3:
+      Type: AWS::S3::Bucket
+      Properties:
+         BucketName: advertisement-dev

@@ -1,0 +1,22 @@
+{
+  "name": "advertisement",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1613.0",
+    "moment": "^2.30.1",
+    "serverless-iam-roles-per-function": "^3.2.0",
+    "serverless-offline": "^13.5.0",
+    "serverless-plugin-common-excludes": "^4.0.0",
+    "serverless-plugin-include-dependencies": "^6.0.0",
+    "twilio": "^5.0.4",
+    "uuid": "^9.0.1"
+  }
+}
